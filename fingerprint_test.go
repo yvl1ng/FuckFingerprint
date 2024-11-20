@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-func TestParseFingerprints(t *testing.T) {
+func TestParseFingerprintsFromFingerprintHub(t *testing.T) {
 	paths := []string{
-		"C:/Users/Administrator/下载/web_fingerprint_v4.json",
-		"C:/Users/Administrator/下载/service_fingerprint_v4.json",
+		"/Users/yvling/Downloads/web_fingerprint_v4.json",
+		"/Users/yvling/Downloads/service_fingerprint_v4.json",
 	}
 
 	fingerprints, err := parseFingerprintsFromFingerprintHub(paths)

@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
@@ -26,6 +27,7 @@ type Info struct {
 
 // MetaData 指纹元数据，用于关联CPE
 type MetaData struct {
+	RawCPE  string `json:"raw_cpe"`
 	Product string `json:"product"`
 	Vendor  string `json:"vendor"`
 	Version string `json:"version"`
@@ -49,10 +51,11 @@ type HttpProbe struct {
 }
 
 type Matcher struct {
-	Type  string   `json:"type"` // favicon -> hash, word -> words, regex -> regex
-	Hash  []string `json:"hash"`
-	Words []string `json:"words"`
-	Regex []string `json:"regex"`
+	Type      string   `json:"type"` // favicon -> hash, word -> words, regex -> regex
+	Hash      []string `json:"hash"`
+	Words     []string `json:"words"`
+	Regex     []string `json:"regex"`
+	Condition string   `json:"condition"`
 }
 
 func calculateMd5(jsonData any) string {
@@ -87,6 +90,25 @@ func parseFingerprintsFromFingerprintHub(paths []string) ([]Fingerprint, error) 
 
 	for index, fingerprint := range fingerprints {
 		fingerprints[index].MD5 = calculateMd5(fingerprint)
+
+		var vendor, product, version string
+		if fingerprint.INFO.Metadata.Vendor != "" && fingerprint.INFO.Metadata.Vendor != "00_unknown" {
+			vendor = fingerprint.INFO.Metadata.Vendor
+		} else {
+			vendor = "*"
+		}
+		if fingerprint.INFO.Metadata.Product != "" && fingerprint.INFO.Metadata.Product != "00_unknown" {
+			product = fingerprint.INFO.Metadata.Product
+		} else {
+			product = "*"
+		}
+		if fingerprint.INFO.Metadata.Version != "" && fingerprint.INFO.Metadata.Version != "*" {
+			version = fingerprint.INFO.Metadata.Version
+		} else {
+			version = "*"
+		}
+
+		fingerprints[index].INFO.Metadata.RawCPE = fmt.Sprintf("cpe:/*:%s:%s:%s:*:*:*", vendor, product, version)
 	}
 
 	data, _ := json.Marshal(fingerprints)

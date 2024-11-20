@@ -1,20 +1,25 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestStart(t *testing.T) {
-	bannerByte, _ := os.ReadFile("banner.txt")
-	banner := string(bannerByte)
-
 	go Start()
-	AllocateTasks("http", banner)
 
 	// 模拟下发任务
-	//for i := 0; i < 10; i++ {
-	//	AllocateTasks("http", banner)
-	//	time.Sleep(5 * time.Second)
-	//}
+	for {
+		startTime := time.Now()
+		for i := 0; i < 3; i++ {
+			bannerByte, _ := os.ReadFile(fmt.Sprintf("banner_test/banner_%d.txt", i))
+			banner := string(bannerByte)
+			AllocateTasks("http", banner, string(rune(i)))
+		}
+		fmt.Printf("指纹匹配用时: %s\n", time.Since(startTime))
+
+		time.Sleep(5 * time.Second)
+	}
 }

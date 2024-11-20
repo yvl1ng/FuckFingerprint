@@ -2,29 +2,32 @@ package main
 
 import (
 	"fmt"
-	"github.com/dlclark/regexp2"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/dlclark/regexp2"
 )
 
 type workerTask struct {
-	ID     int
-	Probe  string
-	Banner string
-	Finger Fingerprint
+	ID        int
+	Tag       string
+	Probe     string
+	Banner    string
+	Finger    Fingerprint
+	StartTime time.Time
 }
 
-type workerResult struct {
+type WorkerResult struct {
 	Task workerTask
-	Hit  bool
 }
 
 var (
 	bufferSize         = 4096
 	workerNums         = runtime.NumCPU() * 4
 	taskChan           = make(chan workerTask, bufferSize)
-	resultChan         = make(chan workerResult, bufferSize)
+	ResultChan         = make(chan WorkerResult, bufferSize)
 	compiledRegexps    = make(map[string]*regexp2.Regexp)
 	globalFingerprints []Fingerprint
 )
@@ -64,12 +67,7 @@ func init() {
 func work(id int, wg *sync.WaitGroup) {
 	for task := range taskChan {
 		// 处理任务
-		result := process(task)
-
-		// 返回结果
-		if result.Hit {
-			resultChan <- result
-		}
+		process(task)
 	}
 	wg.Done()
 }
@@ -84,21 +82,24 @@ func createWorkers(wg *sync.WaitGroup) {
 
 // 收集结果
 func collectResult() {
-	count := 0
-	for result := range resultChan {
-		fmt.Printf("%d ==> %+v\n", count, result.Task.Finger)
-		count += 1
+	for result := range ResultChan {
+		fmt.Printf("指纹命中：%d ==> %+v\n", result.Task.ID, result.Task.Finger)
 	}
 }
 
 // AllocateTasks 下发任务，每个 worker 负责处理 1 个 banner 和 1 个 fingerprint
-func AllocateTasks(probe, banner string) {
+func AllocateTasks(probe, banner, tag string) {
+	_banner := strings.ToLower(banner)
+	_banner = strings.Replace(_banner, "\n", " ", -1)
+
 	for id, fingerprint := range globalFingerprints {
 		taskChan <- workerTask{
-			ID:     id,
-			Probe:  probe,
-			Banner: banner,
-			Finger: fingerprint,
+			ID:        id,
+			Tag:       tag,
+			Probe:     probe,
+			Banner:    _banner,
+			Finger:    fingerprint,
+			StartTime: time.Now(),
 		}
 	}
 
